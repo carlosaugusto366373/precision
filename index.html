@@ -659,12 +659,8 @@
         // ============================================================
         // ===== CONFIGURAÇÃO DO BACKEND =====
         // ============================================================
-        // Detecta automaticamente a URL da API:
-        // - Se o site for aberto como arquivo local (file://), usa localhost:3000
-        // - Se for servido por um servidor, usa a mesma origem (para hospedagem futura)
-        const API_BASE = (location.protocol === 'file:' || location.hostname === '' || location.hostname === 'localhost')
-            ? 'http://localhost:3000'
-            : location.origin;
+        // Backend hospedado no Render
+        const API_BASE = 'https://qzz-backend.onrender.com';
 
         // ============================================================
         // ===== KEYS PERMANENTES (offline) — MANTIDAS =====
