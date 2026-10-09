@@ -659,11 +659,10 @@
         // ============================================================
         // ===== CONFIGURAÇÃO DO BACKEND =====
         // ============================================================
-        // Backend hospedado no Render
         const API_BASE = 'https://qzz-backend.onrender.com';
 
         // ============================================================
-        // ===== KEYS PERMANENTES (offline) — MANTIDAS =====
+        // ===== KEYS PERMANENTES (offline) =====
         // ============================================================
         const VALID_KEYS = [
             'qzz-xjwshx-4r243r',
@@ -673,7 +672,7 @@
         ];
 
         // ============================================================
-        // ===== KEYS BLOQUEADAS (PRECISION) — MANTIDAS =====
+        // ===== KEYS BLOQUEADAS (PRECISION) =====
         // ============================================================
         const BLOCKED_KEYS = [
             'QZZ-H7N4K2-P9RX',
@@ -724,19 +723,18 @@
         // ============================================================
         let currentKey = null;
         let countdownInterval = null;
+        let sessionCheckInterval = null;
         const TOKEN_STORAGE = 'qzz_token';
         const EXPIRY_STORAGE = 'qzz_expiry';
 
         async function validateKey(code) {
             const normalized = code.trim().toLowerCase();
 
-            // ----- VERIFICAÇÃO DE BLOQUEIO (PRECISION) -----
             if (BLOCKED_KEYS.includes(normalized)) {
                 showToast('Key registrada em outro dispositivo', 'error');
                 return false;
             }
 
-            // ----- KEY PERMANENTE (offline) -----
             if (VALID_KEYS.includes(normalized)) {
                 currentKey = { key: normalized, expiry: new Date(PERMANENT_EXPIRY) };
                 localStorage.setItem(TOKEN_STORAGE, 'permanent-token-' + normalized);
@@ -745,15 +743,11 @@
                 return true;
             }
 
-            // ----- VALIDAÇÃO PELO BACKEND -----
             try {
                 const response = await fetch(API_BASE + '/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        key: code,
-                        hwid: getBrowserHwid()
-                    })
+                    body: JSON.stringify({ key: code, hwid: getBrowserHwid() })
                 });
 
                 const data = await response.json();
@@ -787,7 +781,6 @@
                 return false;
             }
 
-            // Token permanente (offline)
             if (token.startsWith('permanent-token-')) {
                 const key = token.replace('permanent-token-', '');
                 if (VALID_KEYS.includes(key)) {
@@ -800,7 +793,6 @@
                 }
             }
 
-            // Token do backend
             try {
                 const response = await fetch(API_BASE + '/api/auth/session', {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -819,7 +811,6 @@
                 }
                 return true;
             } catch (error) {
-                // Se o servidor estiver offline, mantém a sessão local
                 currentKey = { key: 'sessao', expiry: expiryDate };
                 return true;
             }
@@ -842,7 +833,7 @@
                 el.textContent = 'Expirada';
                 el.style.color = '#ff5555';
                 clearInterval(countdownInterval);
-                setTimeout(logout, 2000);
+                forceLogout('Sua key expirou');
                 return;
             }
             const d = Math.floor(diff / 86400000);
@@ -857,6 +848,7 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'flex';
             updateExpirationInfo();
+            startSessionWatcher();
         }
 
         function updateExpirationInfo() {
@@ -870,12 +862,57 @@
         }
 
         function logout() {
+            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
             localStorage.removeItem(TOKEN_STORAGE);
             localStorage.removeItem(EXPIRY_STORAGE);
             if (countdownInterval) clearInterval(countdownInterval);
             currentKey = null;
             showToast('Sessão encerrada', 'error');
             setTimeout(() => location.reload(), 1000);
+        }
+
+        // ============================================================
+        // ===== LOGOUT AUTOMÁTICO (quando a key expira) =====
+        // ============================================================
+        function forceLogout(msg) {
+            localStorage.removeItem(TOKEN_STORAGE);
+            localStorage.removeItem(EXPIRY_STORAGE);
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+            currentKey = null;
+            showToast('⚠ ' + (msg || 'Sessão expirada'), 'error');
+            setTimeout(() => location.reload(), 2500);
+        }
+
+        function startSessionWatcher() {
+            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+            sessionCheckInterval = setInterval(async () => {
+                if (!currentKey) return;
+
+                if (Date.now() >= currentKey.expiry.getTime()) {
+                    forceLogout('Sua key expirou');
+                    return;
+                }
+
+                if (currentKey.key === 'sessao') {
+                    const token = localStorage.getItem(TOKEN_STORAGE);
+                    if (!token) return forceLogout('Sessão inválida');
+
+                    try {
+                        const resp = await fetch(API_BASE + '/api/auth/session', {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        const data = await resp.json();
+                        if (!data.success) {
+                            forceLogout('Sessão encerrada pelo servidor');
+                        } else if (data.expiresAt) {
+                            currentKey.expiry = new Date(data.expiresAt);
+                        }
+                    } catch (e) {
+                        console.warn('Session check falhou:', e);
+                    }
+                }
+            }, 30000);
         }
 
         // ============================================================
