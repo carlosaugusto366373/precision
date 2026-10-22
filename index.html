@@ -169,21 +169,30 @@
             50% { opacity: 0.4; transform: scale(0.8); }
         }
 
-        .btn-discord {
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-discord, .btn-site {
             display: inline-block;
-            padding: 13px 28px;
+            padding: 13px 24px;
             border-radius: 14px;
             border: 1.5px solid #ff004466;
             background: transparent;
             color: #b08080;
             font-weight: 700;
-            font-size: clamp(13px, 1.8vw, 15px);
+            font-size: clamp(12px, 1.7vw, 14px);
             text-decoration: none;
             transition: all 0.25s ease;
             letter-spacing: 1px;
             cursor: pointer;
+            white-space: nowrap;
         }
-        .btn-discord:hover {
+        .btn-discord:hover, .btn-site:hover {
             border-color: #ff0044; color: #ff0044;
             box-shadow: 0 0 30px rgba(255,0,68,0.2);
             transform: scale(1.03);
@@ -213,6 +222,11 @@
             0% { transform: translateY(0) scale(1); opacity: 0.2; }
             50% { transform: translateY(-30px) scale(1.8); opacity: 1; }
             100% { transform: translateY(0) scale(1); opacity: 0.2; }
+        }
+
+        @media (max-width: 420px) {
+            .btn-row { flex-direction: column; width: 100%; }
+            .btn-discord, .btn-site { width: 100%; text-align: center; }
         }
 
         @media (max-width: 360px) {
@@ -271,13 +285,17 @@
             </div>
             <br>
 
-            <a href="https://discord.gg/MfY4EAFKnf" target="_blank" class="btn-discord">
-                Avisos no Discord Oficial
-            </a>
+            <div class="btn-row">
+                <a href="https://qzzcommunity.sharpify.online/" target="_blank" class="btn-site">
+                    Loja Oficial
+                </a>
+                <a href="https://discord.gg/MfY4EAFKnf" target="_blank" class="btn-discord">
+                    Loja Oficial do Discord
+                </a>
+            </div>
 
             <div class="maintenance-footer">
-                <a href="https://qzzcommunity.sharpify.online/" target="_blank" style="color:#b08080; text-decoration:none;">qzzcommunity.sharpify.online</a>
-                <br>Android • iOS • Premium
+                Android • iOS • Premium
             </div>
         </div>
     </div>
